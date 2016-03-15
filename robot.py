@@ -71,7 +71,7 @@ class doubanrobot(object):
         return cookies
 
 if __name__ == '__main__':
-    robot = doubanrobot("bucktoothsir@gmail.com", "woshizhu7", "liuruishan.cookie")
+    robot = doubanrobot("username@gmail.com", "password", "cookiepath")
     res = robot.login()
     with open("test.html", 'w') as f:
         f.write(res.text.encode('utf8'))
