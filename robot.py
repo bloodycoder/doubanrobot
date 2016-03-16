@@ -1,3 +1,4 @@
+# coding=utf-8
 import requests
 import re
 import webbrowser
@@ -26,22 +27,23 @@ class doubanrobot(object):
 
         self.session = requests.session()
 
-
     def login(self):
+        self.session.cookies.update(self.cookies)
+        res = self.session.get("https://www.douban.com/mine", headers = self.headers)
         pdb.set_trace()
-        res = self.session.get("https://www.douban.com/", headers = self.headers, cookies = self.cookies)
-        pdb.set_trace()
-        if res.url == "https://www.douban.com/":
+        if res.url == "https://www.douban.com/people/uid/":
             print "login sucessfully"
         else:
             while True:
                 res = self.login_withoutcookies()
-                if(res.url.encode('utf8') == "https://www.douban.com/"):
+                if(res.url == "https://www.douban.com/"):
+                    print "login sucessfully"
                     break
                 else:
                     print "wrong var code"
             with open(self.cookie_path, 'w') as f:
                 pickle.dump(requests.utils.dict_from_cookiejar(self.session.cookies), f)
+        self.ck = self.get_ck(res)
         return res
 
     def login_withoutcookies(self):
@@ -51,14 +53,12 @@ class doubanrobot(object):
         if var_code_url:
             webbrowser.open(var_code_url[0])
             var_code = raw_input("var_code:")
-
             var_id = re.compile(r'type="hidden" name="captcha-id" value="(.+?)"/>').findall(html)
+
             self.data["captcha-solution"] = var_code
             self.data["captcha-id"] = var_id[0]
 
             res = self.session.post(self.url, data = self.data, headers = self.headers)
-            with open('test.html','w') as f:
-                f.write(res.text.encode("utf8"))
         
         return res
 
@@ -67,11 +67,25 @@ class doubanrobot(object):
         with open(cookie_path, 'r') as f:
             cookie = pickle.load(f)
             cookies = requests.utils.cookiejar_from_dict(cookie)
-
         return cookies
+   
+    def get_ck(self, res):
+        ck = re.compile(r'source=main&amp;ck=(.+?)">').findall(res.text)
+        return ck
+
+    def report(self):
+        pdb.set_trace()
+        postdata = {
+            'ck': self.ck,
+            'comment': 'commnet'
+        }
+        return self.session.post("https://www.douban.com", data = postdata)
+
 
 if __name__ == '__main__':
-    robot = doubanrobot("username@gmail.com", "password", "cookiepath")
+    robot = doubanrobot("username@gmail.com", "password", "cookie_path")
     res = robot.login()
-    with open("test.html", 'w') as f:
+    res=robot.report()
+    with open('test.html','w') as f:
         f.write(res.text.encode('utf8'))
+
