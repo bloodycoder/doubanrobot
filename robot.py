@@ -18,7 +18,7 @@ class doubanrobot(object):
             "source" : "index_nav",
             "rememberme": "on"        
             }
-        self.url = "https://accounts.douban.com/login"
+        self.url = "https://www.douban.com/"
         # pdb.set_trace()
         try:
             self.cookies = self.loadcookies(self.cookie_path)
@@ -29,14 +29,14 @@ class doubanrobot(object):
 
     def login(self):
         self.session.cookies.update(self.cookies)
-        res = self.session.get("https://www.douban.com/mine", headers = self.headers)
+        res = self.session.get(self.url + "mine", headers = self.headers)
         pdb.set_trace()
-        if res.url == "https://www.douban.com/people/uid/":
+        if res.url == self.url + "people/uid/":
             print "login sucessfully"
         else:
             while True:
                 res = self.login_withoutcookies()
-                if(res.url == "https://www.douban.com/"):
+                if(res.url == self.url):
                     print "login sucessfully"
                     break
                 else:
@@ -47,7 +47,7 @@ class doubanrobot(object):
         return res
 
     def login_withoutcookies(self):
-        res = self.session.post(self.url, data = self.data, headers = self.headers)
+        res = self.session.post(self.url + "login", data = self.data, headers = self.headers)
         html = res.text
         var_code_url = re.compile(r'<img id="captcha_image" src="(.+?)" alt="captcha"').findall(html)
         if var_code_url:
@@ -79,13 +79,39 @@ class doubanrobot(object):
             'ck': self.ck,
             'comment': 'commnet'
         }
-        return self.session.post("https://www.douban.com", data = postdata)
+        return self.session.post(self.url, data = postdata)
+
+    def sofa(self, group_id, comment):
+        group_url = self.url + "group/" + group_id
+        html = self.session.get(group_url).text()
+        topics = re.findall(r'topic/(\d+?)/.*?class="">.*?<td nowrap="nowrap" class="">(.*?)</td>',
+                html, re.DOTALL)
+        return topics
+
+    def add_comment(self,topic_id, comment):
+        post_data = {
+            'ck': self.ck,
+            'rv_comment': comment,
+            'start': '0',
+            'submit_btn': '加上去'
+        }
+        pdb.set_trace()
+        self.session.post(self.url + "group/topic/" + str(topic_id) + "/add_comment", 
+                          data = post_data)
+
+
+    def sofa(self, group_id, comment):
+        group_url = self.url + "group/"  + group_id
+        html = self.session.get(group_url).text
+        topics = re.findall(r'topic/(\d+?)/.*?class="">.*?<td nowrap="nowrap" class="">(.*?)</td>',
+                html, re.DOTALL)
+        for topic in topics:
+          if topic[1] == '0':
+                add_commet(topic_id[0], comment)
 
 
 if __name__ == '__main__':
     robot = doubanrobot("username@gmail.com", "password", "cookie_path")
     res = robot.login()
     res=robot.report()
-    with open('test.html','w') as f:
-        f.write(res.text.encode('utf8'))
 
