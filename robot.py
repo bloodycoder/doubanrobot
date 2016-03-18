@@ -26,6 +26,7 @@ class doubanrobot(object):
             self.cookies = {}
 
         self.session = requests.session()
+        self.session.headers.update(self.headers)
 
     def login(self):
         self.session.cookies.update(self.cookies)
@@ -46,21 +47,28 @@ class doubanrobot(object):
         self.ck = self.get_ck(res)
         return res
 
-    def login_withoutcookies(self):
-        res = self.session.post(self.url + "login", data = self.data, headers = self.headers)
+   def login_withoutcookies(self):
+        pdb.set_trace()
+        res = self.session.post("https://accounts.douban.com/login", data = self.data)
         html = res.text
-        var_code_url = re.compile(r'<img id="captcha_image" src="(.+?)" alt="captcha"').findall(html)
+        var_code_url = self.findcaptcha(html)
         if var_code_url:
-            webbrowser.open(var_code_url[0])
-            var_code = raw_input("var_code:")
-            var_id = re.compile(r'type="hidden" name="captcha-id" value="(.+?)"/>').findall(html)
-
+            var_code, var_id = self.inputcaptcha(html)
             self.data["captcha-solution"] = var_code
             self.data["captcha-id"] = var_id[0]
-
-            res = self.session.post(self.url, data = self.data, headers = self.headers)
-        
+            res = self.session.post(self.url, data = self.data)
         return res
+
+    def findcaptcha(self, html):
+        var_code_url = re.compile(r'<img id="captcha_image" src="(.+?)" alt="captcha"').findall(html)
+        return var_code_url
+
+    def inputcaptcha(self, html):
+        var_code_url = re.compile(r'<img id="captcha_image" src="(.+?)" alt="captcha"').findall(html)
+        webbrowser.open(var_code_url[0])
+        var_code = raw_input("var_code:")
+        var_id = re.compile(r'type="hidden" name="captcha-id" value="(.+?)"/>').findall(html)
+        return var_code, var_id
 
 
     def loadcookies(self, cookie_path):
@@ -74,19 +82,11 @@ class doubanrobot(object):
         return ck
 
     def report(self):
-        pdb.set_trace()
         postdata = {
             'ck': self.ck,
-            'comment': 'commnet'
+            'comment': '叽叽叽叽叽叽叽叽'
         }
         return self.session.post(self.url, data = postdata)
-
-    def sofa(self, group_id, comment):
-        group_url = self.url + "group/" + group_id
-        html = self.session.get(group_url).text()
-        topics = re.findall(r'topic/(\d+?)/.*?class="">.*?<td nowrap="nowrap" class="">(.*?)</td>',
-                html, re.DOTALL)
-        return topics
 
     def add_comment(self,topic_id, comment):
         post_data = {
@@ -95,20 +95,27 @@ class doubanrobot(object):
             'start': '0',
             'submit_btn': '加上去'
         }
-        pdb.set_trace()
-        self.session.post(self.url + "group/topic/" + str(topic_id) + "/add_comment", 
+        res = self.session.post(self.url + "group/topic/" + str(topic_id) + "/add_comment", 
+                          data = post_data)
+        html = res.text
+        var_code_url = self.findcaptcha(html)
+        if var_code_url:
+            var_code, var_id = self.inputcaptcha(html)
+            post_data["captcha-solution"] = var_code
+            post_data["captcha-id"] = var_id[0]
+            res = self.session.post(self.url + "group/topic/" + str(topic_id) + "/add_comment", 
                           data = post_data)
 
 
-    def sofa(self, group_id, comment):
-        group_url = self.url + "group/"  + group_id
+    def sofa(self, group_id, comment='ง •̀_•́)ง'):
+        group_url = self.url + "group/" + group_id
         html = self.session.get(group_url).text
         topics = re.findall(r'topic/(\d+?)/.*?class="">.*?<td nowrap="nowrap" class="">(.*?)</td>',
                 html, re.DOTALL)
         for topic in topics:
-          if topic[1] == '0':
-                add_commet(topic_id[0], comment)
-
+          if topic[1] == '0' or topic[1] == '1':
+                print "sofa"
+                self.add_comment(topic[0], comment)
 
 if __name__ == '__main__':
     robot = doubanrobot("username@gmail.com", "password", "cookie_path")
