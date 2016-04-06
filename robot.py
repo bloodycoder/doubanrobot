@@ -23,7 +23,7 @@ class doubanrobot(object):
         try:
             self.cookies = self.loadcookies(self.cookie_path)
         except Exception, e:
-            self.cookies = {}
+            self.cookies = dict()
 
         self.session = requests.session()
         self.session.headers.update(self.headers)
